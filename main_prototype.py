@@ -17,6 +17,7 @@ def choose_to_entertain():
         choices=platforms
     ).execute()
 
+    
     category = inquirer.select(
         message=f"🎯 What do you want to search on {platform}?",
         choices=categories
