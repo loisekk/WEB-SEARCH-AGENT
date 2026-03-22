@@ -5,7 +5,6 @@ Install: pip install SpeechRecognition pyaudio
 Falls back gracefully if mic / library not available.
 """
 
-
 def voice_input() -> str | None:
     """
     Records from microphone and returns recognised text.
