@@ -22,6 +22,7 @@ Return ONLY the search query.
 """
 )
 
+
 def agent_reason(user_input):
     chain = prompt | llm
     result = chain.invoke({"user_input": user_input})
