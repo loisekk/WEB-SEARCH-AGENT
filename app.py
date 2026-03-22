@@ -16,6 +16,7 @@ from streamlit_lottie import st_lottie
 import requests
 from youtube_api import search_videos, search_shorts
 
+
 QUERY_FILE = ".streamlit_query"
 st.set_page_config(
     page_title="LOISEKK",
