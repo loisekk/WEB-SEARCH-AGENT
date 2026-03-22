@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from InquirerPy import inquirer
 
 # ---------------- Platform + Category Selection ----------------
+
 def choose_to_entertain():
     platforms = ["youtube", "bing", "google", "reddit", "steam"]
     categories = [
