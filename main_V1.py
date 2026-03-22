@@ -1,8 +1,8 @@
 from InquirerPy import inquirer
 from googleapiclient.discovery import build
 
-YOUTUBE_API_KEY = "AIzaSyCHHHpPjptqoIhwSsjsdprf2t7VQy-nGtU"
-GOOGLE_API_KEY = "AIzaSyC6NQI4Vt4TVZHquAaj0LvpvR0fjs5qi-M"
+YOUTUBE_API_KEY = ""
+GOOGLE_API_KEY = ""
 
 def choose_to_entertain():
     platforms = ["youtube", "bing", "google", "reddit", "instragram"]
