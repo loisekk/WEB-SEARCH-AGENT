@@ -8,7 +8,6 @@ from googleapiclient.errors import HttpError
 YOUTUBE_API_KEY = ""
 # =========================================
 
-
 # ---------- Helpers ----------
 def clean_query(text: str) -> str:
     return re.sub(r"[^\x00-\x7F]+", "", text)
