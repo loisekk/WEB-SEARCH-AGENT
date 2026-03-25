@@ -5,9 +5,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 # ================= CONFIG =================
-YOUTUBE_API_KEY = "AIzaSyCHHHpPjptqoIhwSsjsdprf2t7VQy-nGtU"
+YOUTUBE_API_KEY = ""
 # =========================================
-
 
 # ---------- Helpers ----------
 def clean_query(text: str) -> str:

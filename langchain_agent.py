@@ -1,8 +1,6 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 
-
-
 llm = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0.2
@@ -23,6 +21,7 @@ Decide:
 Return ONLY the search query.
 """
 )
+
 
 def agent_reason(user_input):
     chain = prompt | llm
