@@ -5,11 +5,19 @@
 # ─────────────────────────────────────────
 
 # ── Core Streamlit ──
-streamlit
+streamlit>=1.32.0
+google-api-python-client>=2.100.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+streamlit-player>=0.0.3
+streamlit-lottie>=0.0.5
+
+
 streamlit-player
 streamlit-lottie
 streamlit-javascript
 streamlit-extras
+
 
 # ── YouTube / Google APIs ──
 google-api-python-client
