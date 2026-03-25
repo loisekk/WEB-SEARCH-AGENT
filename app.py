@@ -165,10 +165,15 @@ def video_card(v):
     vid = v.get("video_id",""); title = esc(v.get("title","Unknown")); ch = esc(v.get("channel",""))
     thumb = v.get("thumb","") or f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
     av = avatar(v.get("channel",""), v.get("channel_thumb",""))
+    # On hover: show preview; on error inside preview iframe: restore thumbnail silently
     hover_js = (
-        f"this.querySelector('.hpv').style.display='block';"
-        f"this.querySelector('.hpv iframe').src='https://www.youtube-nocookie.com/embed/{vid}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&loop=1&playlist={vid}';"
-        f"this.querySelector('img').style.opacity='0';"
+        f"var el=this;"
+        f"el.querySelector('.hpv').style.display='block';"
+        f"var ifr=el.querySelector('.hpv iframe');"
+        f"ifr.src='https://www.youtube-nocookie.com/embed/{vid}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&loop=1&playlist={vid}';"
+        f"el.querySelector('img').style.opacity='0';"
+        f"ifr._restore=function(){{el.querySelector('.hpv').style.display='none';ifr.src='';el.querySelector('img').style.opacity='1';}};"
+        f"setTimeout(function(){{try{{if(ifr.contentDocument!==null){{ifr._restore&&ifr._restore();}}}}catch(e){{}};}},2000);"
     )
     leave_js = (
         f"this.querySelector('.hpv').style.display='none';"
@@ -321,7 +326,16 @@ _shorts_data = json.dumps([{"vid":s.get("video_id",""),"title":s.get("title","")
 SHORTS_OVERLAY = (
     '<div id="shorts-overlay">'
     '<button class="short-close" onclick="closeShorts()">&#10005;</button>'
-    '<div class="short-player-wrap"><iframe id="short-iframe" src="" allow="autoplay;encrypted-media;fullscreen" allowfullscreen style="width:100%;height:100vh;border:none;"></iframe></div>'
+    '<div class="short-player-wrap">'
+    '<iframe id="short-iframe" src="" allow="autoplay;encrypted-media;fullscreen" allowfullscreen style="width:100%;height:100vh;border:none;"></iframe>'
+    # Fallback for blocked shorts
+    '<div id="short-fallback" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:#111;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:5;">'
+    '<div style="font-size:36px">🔒</div>'
+    '<div style="color:#f1f1f1;font-weight:700;font-size:16px">Short unavailable</div>'
+    '<div style="color:#aaa;font-size:13px;text-align:center;padding:0 20px">This short is restricted from embedding</div>'
+    '<button onclick="nextShort()" style="background:#6c63ff;color:#fff;border:none;border-radius:20px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">&#8595; Next Short</button>'
+    '</div>'
+    '</div>'
     '<div class="short-actions">'
     '<div class="sa" onclick="likeShort()"><svg viewBox="0 0 24 24" width="28" height="28"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><span>Like</span></div>'
     '<div class="sa" onclick="dislikeShort()"><svg viewBox="0 0 24 24" width="28" height="28"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg><span>Dislike</span></div>'
@@ -331,17 +345,52 @@ SHORTS_OVERLAY = (
     '<script>'
     'var _shortsData = ' + _shorts_data + ';'
     'var _shortIdx = 0;'
+    'var _shortTimer = null;'
+    'var _shortConfirmed = false;'
+    'var _ytShortPlayer = null;'
+    'function showShortFallback(){'
+        'document.getElementById("short-iframe").style.display="none";'
+        'var fb=document.getElementById("short-fallback");'
+        'if(fb){fb.style.display="flex";}'
+    '}'
+    'function hideShortFallback(){'
+        'document.getElementById("short-iframe").style.display="block";'
+        'var fb=document.getElementById("short-fallback");'
+        'if(fb){fb.style.display="none";}'
+    '}'
+    'window.addEventListener("message",function(e){'
+        'try{'
+            'var d=typeof e.data==="string"?JSON.parse(e.data):e.data;'
+            'if(!d)return;'
+            'if(d.event==="infoDelivery"&&d.info){'
+                'var s=d.info.playerState;'
+                'if(s===1||s===2||s===3){_shortConfirmed=true;if(_shortTimer)clearTimeout(_shortTimer);hideShortFallback();}'
+                'if(d.info.errorCode)showShortFallback();'
+            '}'
+            'if(d.event==="onError")showShortFallback();'
+        '}catch(ex){}'
+    '});'
     'function openShort(idx){'
-        '_shortIdx = idx;'
-        'var s = _shortsData[idx];'
-        'if(!s) return;'
-        'document.getElementById("short-iframe").src = "https://www.youtube-nocookie.com/embed/"+s.vid+"?autoplay=1&rel=0";'
+        '_shortIdx=idx;'
+        'var s=_shortsData[idx];'
+        'if(!s)return;'
+        'hideShortFallback();'
+        '_shortConfirmed=false;'
+        'if(_shortTimer)clearTimeout(_shortTimer);'
+        'document.getElementById("short-iframe").src="https://www.youtube.com/embed/"+s.vid+"?autoplay=1&rel=0&enablejsapi=1";'
         'document.getElementById("shorts-overlay").classList.add("active");'
         'document.body.style.overflow="hidden";'
+        '_shortTimer=setTimeout(function(){if(!_shortConfirmed)showShortFallback();},3000);'
+        'if(window.YT&&window.YT.Player){'
+            'if(_ytShortPlayer)try{_ytShortPlayer.destroy();}catch(e){}'
+            '_ytShortPlayer=new YT.Player("short-iframe",{events:{"onStateChange":function(ev){if(ev.data===1||ev.data===2||ev.data===3){_shortConfirmed=true;if(_shortTimer)clearTimeout(_shortTimer);hideShortFallback();}},"onError":function(){showShortFallback();}}});'
+        '}'
     '}'
     'function closeShorts(){'
+        'if(_shortTimer) clearTimeout(_shortTimer);'
         'document.getElementById("shorts-overlay").classList.remove("active");'
         'document.getElementById("short-iframe").src="";'
+        'hideShortFallback();'
         'document.body.style.overflow="";'
     '}'
     'function nextShort(){'
@@ -686,11 +735,104 @@ document.addEventListener('DOMContentLoaded',function(){{
 
       <!-- LEFT: video + info + comments -->
       <div id="wl">
-        <div class="pw">
-          <iframe src="https://www.youtube-nocookie.com/embed/{vid_id}?autoplay=1&rel=0&modestbranding=1"
+        <div class="pw" id="pw-wrap" style="position:relative;">
+
+          <!-- Player: hidden by default, shown only when confirmed playing -->
+          <iframe id="yt-player"
+            src="https://www.youtube.com/embed/{vid_id}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1"
             allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;fullscreen"
-            allowfullscreen></iframe>
+            allowfullscreen
+            style="width:100%;aspect-ratio:16/9;display:none;border:none;"></iframe>
+
+          <!-- Fallback: shown by DEFAULT, hidden only when video confirmed playing -->
+          <div id="pw-fallback" style="width:100%;aspect-ratio:16/9;background:#0f0f0f;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+            <img src="https://img.youtube.com/vi/{vid_id}/maxresdefault.jpg"
+              onerror="this.src='https://img.youtube.com/vi/{vid_id}/hqdefault.jpg'"
+              style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.3;z-index:0;">
+            <div id="fallback-content" style="position:relative;z-index:1;text-align:center;padding:24px;">
+              <!-- Loading state first -->
+              <div id="fb-loading" style="display:block;">
+                <div style="font-size:36px;margin-bottom:10px">⏳</div>
+                <div style="font-size:16px;color:#aaa;">Loading video...</div>
+              </div>
+              <!-- Blocked state shown after timeout -->
+              <div id="fb-blocked" style="display:none;">
+                <div style="font-size:48px;margin-bottom:12px">🔒</div>
+                <div style="font-size:18px;font-weight:700;color:#f1f1f1;margin-bottom:8px">Embed Restricted</div>
+                <div style="font-size:14px;color:#aaa;margin-bottom:24px;max-width:320px;margin-left:auto;margin-right:auto;">This video is blocked from third-party sites by its owner</div>
+                <a href="https://www.youtube.com/watch?v={vid_id}" target="_blank"
+                  style="display:inline-flex;align-items:center;gap:10px;background:#ff0000;color:#fff;padding:12px 28px;border-radius:24px;font-size:15px;font-weight:700;text-decoration:none;">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M10 15l5.19-3L10 9v6zm11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
+                  Watch on YouTube
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <script>
+        // INVERTED LOGIC: fallback shows by default, player shows only when confirmed playing
+        var _videoConfirmed = false;
+        var _blockedTimer = null;
+
+        function videoConfirmed() {{
+          if (_videoConfirmed) return;
+          _videoConfirmed = true;
+          if (_blockedTimer) clearTimeout(_blockedTimer);
+          // Video is playing — show player, hide fallback
+          document.getElementById('yt-player').style.display = 'block';
+          document.getElementById('pw-fallback').style.display = 'none';
+        }}
+
+        function videoBlocked() {{
+          if (_videoConfirmed) return; // already confirmed playing, ignore
+          document.getElementById('fb-loading').style.display = 'none';
+          document.getElementById('fb-blocked').style.display = 'block';
+        }}
+
+        // Method 1: YouTube IFrame API — most reliable
+        window.onYouTubeIframeAPIReady = function() {{
+          new YT.Player('yt-player', {{
+            events: {{
+              'onStateChange': function(e) {{
+                // States: -1=unstarted, 0=ended, 1=playing, 2=paused, 3=buffering, 5=cued
+                if (e.data === 1 || e.data === 2 || e.data === 3) videoConfirmed();
+              }},
+              'onError': function(e) {{
+                // 100=not found, 101/150=blocked by owner
+                videoBlocked();
+              }}
+            }}
+          }});
+        }};
+
+        // Load YouTube IFrame API
+        (function() {{
+          var tag = document.createElement('script');
+          tag.src = 'https://www.youtube.com/iframe_api';
+          document.head.appendChild(tag);
+        }})();
+
+        // Method 2: postMessage fallback
+        window.addEventListener('message', function(e) {{
+          try {{
+            var d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+            if (!d) return;
+            if (d.event === 'infoDelivery' && d.info) {{
+              var s = d.info.playerState;
+              if (s === 1 || s === 2 || s === 3) videoConfirmed();
+              if (d.info.errorCode) videoBlocked();
+            }}
+            if (d.event === 'onError') videoBlocked();
+          }} catch(ex) {{}}
+        }});
+
+        // Method 3: Safety timeout — if no confirmation in 4s, show blocked
+        _blockedTimer = setTimeout(function() {{
+          if (!_videoConfirmed) videoBlocked();
+        }}, 4000);
+        </script>
+
 
         <div class="wti">{esc(cur_title)}</div>
 
@@ -728,11 +870,11 @@ document.addEventListener('DOMContentLoaded',function(){{
       <!-- RIGHT: filter chips + suggestions -->
       <div id="wr">
         <div id="sc2">
-          <button class="sch on">All</button>
+          <button class="sch on"  onclick="{qjs(AQ or cur_title[:30])}">All</button>
           <button class="sch" onclick="{qjs(cur_ch[:20])}">{esc(cur_ch[:16] or "Channel")}</button>
           <button class="sch" onclick="{qjs(fw)}">{fw}</button>
-          <button class="sch">Recently uploaded</button>
-          <button class="sch">Watched</button>
+          <button class="sch" onclick="{qjs((AQ or cur_title[:20]) + ' 2025')}">Recently uploaded</button>
+          <button class="sch" onclick="{qjs('best ' + (AQ or cur_title[:20]))}">Best of</button>
         </div>
         {SUGG or '<div style="padding:20px;color:#aaa;text-align:center">No suggestions found.</div>'}
       </div>
