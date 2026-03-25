@@ -1,6 +1,10 @@
 .env
-__pycache__
 .venv
+.streamlit/secrets.toml
+__pycache__/
+*.pyc
+.streamlit_query
+assets/*.tmp
 <<<<<<< HEAD
 
 
