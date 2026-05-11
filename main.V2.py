@@ -21,13 +21,13 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GOOGLE_CX_ID = os.getenv("GOOGLE_CX_ID")
 
 
-# ================= CLEAN QUERY =================
+#               CLEAN QUERY
 def clean_query(text):
     text = re.sub(r"[^\w\s]", "", text)
     return text.strip()
 
 
-# ================= YOUTUBE AUTOMATION =================
+#             YOUTUBE AUTOMATION
 def open_youtube_and_play(search_query):
     options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
@@ -59,7 +59,7 @@ def open_youtube_and_play(search_query):
         print("❌ YouTube Automation Error:", e)
 
 
-# ================= GOOGLE SEARCH (TERMINAL RESULTS) =================
+#                     GOOGLE SEARCH (TERMINAL RESULTS) 
 def google_search_terminal():
     print("\n" + "=" * 60)
     print("🔍 GOOGLE SEARCH".center(60))
@@ -95,7 +95,7 @@ def google_search_terminal():
         print(f"❌ Google API Error: {e}")
 
 
-# ================= CATEGORY FLOWS =================
+#               CATEGORY FLOWS 
 def choose_platform():
     return inquirer.select(
         message="🌐 Select Platform:",
@@ -193,7 +193,7 @@ def study_flow():
     return f"{topic} tutorial"
 
 
-# ================= MAIN AGENT =================
+#                 MAIN AGENT 
 def web_search_agent():
     print("\n🤖 Web Search AI Agent Started\n")
 
@@ -231,7 +231,7 @@ def web_search_agent():
     open_youtube_and_play(final_query)
 
 
-# ================= RUN =================
+
 if __name__ == "__main__":
     web_search_agent()
 
