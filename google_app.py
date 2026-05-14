@@ -47,7 +47,7 @@ def google_search(query: str, num: int = 10, search_type: str = "web") -> list:
             "cx": GOOGLE_CX_ID,
             "q": query,
             "num": min(num, 10),  # API max is 10 per request
-            # ✅ FIX: These params force entire-web search regardless of UI toggle
+            # FIX: These params force entire-web search regardless of UI toggle
             "filter": "1",           # deduplicate results
             "gl": "in",              # India region boost
             "lr": "lang_en",         # English results
@@ -57,7 +57,7 @@ def google_search(query: str, num: int = 10, search_type: str = "web") -> list:
         if search_type == "image":
             params["searchType"] = "image"
         else:
-            # ✅ KEY FIX: excludeTerms trick forces broader web results
+            #  KEY FIX: excludeTerms trick forces broader web results
             # when site restriction is active
             params["siteSearch"] = "www.google.com"
             params["siteSearchFilter"] = "e"  # 'e' = EXCLUDE → searches entire web
@@ -129,9 +129,9 @@ def google_search_extended(query: str, num: int = 20, search_type: str = "web") 
     return results
 
 
-# ══════════════════════════════════════════════════════
+
 # CSS — LOISEKK dark theme
-# ══════════════════════════════════════════════════════
+
 st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500&display=swap');
 html,body,[data-testid="stAppViewContainer"]{background:#080810!important;color:#f1f1f1;}
