@@ -384,6 +384,6 @@ WEB SEARCH AGENT/
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:a78bfa,50:6c63ff,100:0a0a2e&height=140&section=footer" width="100%"/>
 
-*Built with 🔮 and Python by Yash Brahmankar · LOISEKK © 2025*
+*Built with 🔮 and Python by Yash Brahmankar · LOISEKK © 2026*
 
 </div>
